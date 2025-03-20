@@ -17,24 +17,33 @@ def load_api_key() -> str:
 def get_news(company: str, date: str) -> dict:
     stock = yf.Ticker(company)
     formatted_date = datetime.datetime.strptime(date, '%Y-%m-%d').strftime('%Y-%m-%d')
-    file_path = f'news/{company}_News_{formatted_date}.json'
-    
-    # Check if the JSON file for the current company and date exists
+    file_path = f'news/{company}_News.json'
+
+    # Load existing news data if the file exists
     if os.path.exists(file_path):
         with open(file_path, 'r') as f:
-            news = json.load(f)
-        return news
-    
-    BASE_URL = 'https://newsapi.org/v2/everything?q=COMPANY&from=DATE&sortBy=popularity&apiKey=API_KEY'
+            all_news = json.load(f)
+    else:
+        all_news = {}
+
+    # If news for the given date already exists, return it
+    if formatted_date in all_news:
+        print(f"News for {company} on {formatted_date} already exists in {file_path}.")
+        return all_news[formatted_date]
+
+    # Fetch news from the API
+    print(f"Fetching news for {company} on {formatted_date}...")
+    BASE_URL = 'https://newsapi.org/v2/everything?q=COMPANY&from=DATE&to=DATE&sortBy=popularity&apiKey=API_KEY'
     url = BASE_URL.replace('COMPANY', stock.info['longName'].split()[0])
     url = url.replace('DATE', formatted_date)
     url = url.replace('API_KEY', load_api_key())
-    print(url)
     response = requests.get(url)
     news = response.json()
 
-    # Write the news to the JSON file
+    # Save the news for the given date in the JSON file
+    all_news[formatted_date] = news.get('articles', [])
     with open(file_path, 'w') as f:
-        json.dump(news, f, indent=4)
-    
-    return news
+        json.dump(all_news, f, indent=4)
+
+    print(f"News for {company} on {formatted_date} has been saved to {file_path}.")
+    return all_news[formatted_date]

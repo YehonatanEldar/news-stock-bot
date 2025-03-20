@@ -3,11 +3,12 @@
 
 import datetime
 from get_news import get_news
+from simulation import Simulation
 
 if __name__ == '__main__':
-    COMPANY_LIST = ['AAPL', 'GOOGL', 'AMZN', 'MSFT', 'TSLA']    
+    COMPANY_LIST = ['TSLA']    
     
-    yesterday = (datetime.datetime.now() - datetime.timedelta(days=1)).strftime('%Y-%m-%d')
-    
-    news = get_news(COMPANY_LIST[0], yesterday)
+    simulation = Simulation(COMPANY_LIST, 10000)
+    simulation.run('2025-02-20', '2025-03-16')
+    print(simulation.get_results())
 
