@@ -16,7 +16,7 @@ def load_api_key() -> str:
 
 def get_news(company: str, date: str) -> dict:
     stock = yf.Ticker(company)
-    formatted_date = datetime.datetime.strptime(date, '%Y-%m-%d').strftime('%Y-%m-%d')
+    formatted_date = date.strftime('%Y-%m-%d')
     file_path = f'news/{company}_News.json'
 
     # Load existing news data if the file exists

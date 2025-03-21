@@ -1,11 +1,10 @@
-import base64
-import os
 from google import genai
 from google.genai import types
 import json
 from get_news import get_news
 import time
 import requests
+from constants import TradeAction
 
 def load_api_key():
     try:
@@ -55,7 +54,7 @@ def analyze_article(input_text) -> str:
         return full_text
 
     except requests.exceptions.RequestException as e:
-        if e == {'error': {'code': 429, 'message': 'Resource has been exhausted (e.g. check quota).', 'status': 'RESOURCE_EXHAUSTED'}}:
+        if e == "{'error': {'code': 429, 'message': 'Resource has been exhausted (e.g. check quota).', 'status': 'RESOURCE_EXHAUSTED'}}":
             print("API rate limit reached. Please try again later.")
         print(f"Network error: {e}")
         return "0"  # Default to neutral signal in case of an error
@@ -67,21 +66,25 @@ def analyze_article(input_text) -> str:
 def get_signal(company, date):
     news = get_news(company, date)  # This now returns a list of articles for the given date
     signal = 0
+    num_top_articles = 5
     
-    # Analyze only the top 5 articles
-    top_articles = news[:5]  # Get the first 5 articles
+    # Analyze only the top articles
+    top_articles = news[:num_top_articles]  # Get the top articles
 
     for idx, article in enumerate(top_articles):  # Iterate over the top 5 articles
-        time.sleep(1)  # Sleep for 1 second to avoid rate limiting
+        time.sleep(0.5)  # Sleep for 1 second to avoid rate limiting
         title = article.get('title', '')
         description = article.get('description', '')
         content = article.get('content', '')
         input_text = f"{company}\n{title}\n{description}\n{content}"
         
         result = analyze_article(input_text)
-        signal += int(result)
-        print()
+        int_result = int(result)
+        factored_result = int_result * (num_top_articles - idx)
+        signal += factored_result
+
 
     # Determine the overall signal
     signal = 1 if signal > 0 else -1 if signal < 0 else 0
-    return signal
+    print(f"Signal: {TradeAction(signal).name}")
+    return TradeAction(signal)

@@ -2,13 +2,16 @@
 # It will call the functions from the other files to get the news and the stock data.
 
 import datetime
+
 from get_news import get_news
 from simulation import Simulation
 
 if __name__ == '__main__':
-    COMPANY_LIST = ['TSLA']    
+    COMPANY_LIST = ['GOOG', 'AAPL', 'MSFT', 'AMZN']    
     
-    simulation = Simulation(COMPANY_LIST, 10000)
-    simulation.run('2025-02-20', '2025-03-16')
-    print(simulation.get_results())
+    DAYS = 14
+    simulation = Simulation(10000, COMPANY_LIST)
+    simulation.run(DAYS)
+    results = simulation.get_results()
+    print(results)
 
