@@ -1,2 +1,1 @@
-1. Write get_signal func in AI_Analysis.py
-2. Organize everything in main.py
+

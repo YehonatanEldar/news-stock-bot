@@ -7,11 +7,12 @@ from get_news import get_news
 from simulation import Simulation
 
 if __name__ == '__main__':
-    COMPANY_LIST = ['GOOG', 'AAPL', 'MSFT', 'AMZN']    
+    COMPANY_LIST = ['AAPL', 'MSFT', 'GOOGL', 'AMZN', 'TSLA']
     
     DAYS = 14
-    simulation = Simulation(10000, COMPANY_LIST)
-    simulation.run(DAYS)
+    DAYS_BACK = 30
+    simulation = Simulation(500, COMPANY_LIST)
+    simulation.run(DAYS, DAYS_BACK)
     results = simulation.get_results()
     print(results)
 

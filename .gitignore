@@ -1,0 +1,5 @@
+# Ignore the api_keys.json file
+api_keys.json
+
+# Ignore the news folder and its contents
+news/
