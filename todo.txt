@@ -5,3 +5,5 @@
 * find a way to change the trading strategy easily
 * Make a static website
 * Add example_api_keys.json
+* Make a nice UI
+* Handle API errors

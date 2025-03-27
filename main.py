@@ -9,9 +9,9 @@ from simulation import Simulation
 if __name__ == '__main__':
     COMPANY_LIST = ['AAPL', 'MSFT', 'GOOGL', 'AMZN', 'TSLA']
     
-    DAYS = 14
-    DAYS_BACK = 30
-    simulation = Simulation(500, COMPANY_LIST)
+    DAYS = 45
+    DAYS_BACK = 100
+    simulation = Simulation(1000, COMPANY_LIST)
     simulation.run(DAYS, DAYS_BACK)
     results = simulation.get_results()
     print(results)

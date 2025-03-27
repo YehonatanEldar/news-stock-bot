@@ -1,13 +1,13 @@
 import json
 import time
 
-import numpy as np
 import requests
 from google import genai
 from google.genai import types
 
 from constants import RankingTypeFactors, TradeAction
 from get_news import get_news
+import numpy as np
 
 
 def load_api_key():
@@ -73,7 +73,7 @@ def analyze_article(input_text) -> int:
 
 def analyze_articles(articles: list, company: str) -> list:
     """
-    Analyze a list of articles and return a list of AI signals (-1, 0, or 1).
+    Analyze a batch of articles in a single API call and return a list of AI signals (-1, 0, or 1).
 
     Args:
         articles (list): A list of articles, where each article is a dictionary containing 'title', 'description', and 'content'.
@@ -82,22 +82,77 @@ def analyze_articles(articles: list, company: str) -> list:
     Returns:
         list: A list of AI signals (-1, 0, or 1) corresponding to the articles.
     """
-    signals = []
+    if not articles:
+        return []
 
-    for article in articles:
-        title = article.get('title', '')
-        description = article.get('description', '')
-        content = article.get('content', '')
-        input_text = f"{company}\n{title}\n{description}\n{content}"
+    try:
+        client = genai.Client(api_key=load_api_key())
+        model = "gemini-2.0-flash"
 
-        try:
-            signal = analyze_article(input_text)  # Call your existing AI function
-            signals.append(signal)
-        except Exception as e:
-            print(f"Error analyzing article: {e}")
-            signals.append(0)  # Default to neutral signal in case of an error
+        # Prepare a single prompt for all articles
+        articles_text = "\n\n".join(
+            f"Article {idx + 1}:\n"
+            f"Title: {article.get('title', 'N/A')}\n"
+            f"Description: {article.get('description', 'N/A')}\n"
+            f"Content: {article.get('content', 'N/A')}"
+            for idx, article in enumerate(articles)
+        )
 
-    return signals
+        prompt = f"""
+        I will provide a list of articles for the company '{company}'. For each article, determine whether it signals something bad, good, or neutral for the company. 
+        Respond with a list of values: -1 (bad), 0 (neutral), or 1 (good). Each value should correspond to the respective article in the order provided.
+
+        Articles:
+        {articles_text}
+
+        Respond with a list of values like this: [-1, 0, 1, ...]
+        """
+
+        contents = [
+            types.Content(
+                role="user",
+                parts=[types.Part.from_text(text=prompt)],
+            )
+        ]
+
+        generate_content_config = types.GenerateContentConfig(
+            temperature=1,
+            top_p=0.95,
+            top_k=40,
+            max_output_tokens=8192,
+            response_mime_type="text/plain",
+        )
+
+        # Send the request to the AI model
+        response = client.models.generate_content(
+            model=model,
+            contents=contents,
+            config=generate_content_config,
+        )
+
+        # Parse the response into a list of integers
+        response_text = response.text.strip()  # Corrected this line
+        print(f"AI Response: {response_text}")  # Debugging output
+        signals = eval(response_text)  # Convert the response string to a Python list
+
+        # Ensure the response is a list of integers
+        if not isinstance(signals, list) or not all(isinstance(x, int) for x in signals):
+            raise ValueError("Invalid response format from AI")
+
+        return signals
+    
+    except requests.exceptions.RequestException as e:
+        if e == "Error during batch analysis: 429 RESOURCE_EXHAUSTED. {'error': {'code': 429, 'message': 'Resource has been exhausted (e.g. check quota).', 'status': 'RESOURCE_EXHAUSTED'}}":
+            print("API rate limit reached. Waiting before retrying...")
+            time.sleep(10)  # Wait for 10 seconds before retrying
+
+    except requests.exceptions.RequestException as e:
+        print(f"Network error: {e}")
+        return [0] * len(articles)  # Default to neutral signals in case of an error
+
+    except Exception as e:
+        print(f"Error during batch analysis: {e}")
+        return [0] * len(articles)  # Default to neutral signals in case of an error
 
 def factorize_signals(popularity_rank: dict, relevancy_rank: dict) -> float:
     """
@@ -140,7 +195,7 @@ def factorize_signals(popularity_rank: dict, relevancy_rank: dict) -> float:
             )
             final_signals.append(new_signal)
 
-    print('Final Signals:', final_signals)
+    print(f'Final Signals: {final_signals}')
 
     # Sum up all the weighted signals to get the final aggregated signal
     return sum(final_signals)
@@ -166,8 +221,9 @@ def get_signal(company, date):
     # Analyze only the top articles
     top_popularity_articles = popularity_news[:num_top_articles]
     top_relevancy_articles = relevancy_news[:num_top_articles]
+    print(f"Top Popularity Articles: {len(top_popularity_articles)}")
 
-    # Analyze articles and get AI signals
+    # Analyze articles in batches and get AI signals
     popularity_signals = analyze_articles(top_popularity_articles, company)
     relevancy_signals = analyze_articles(top_relevancy_articles, company)
 
@@ -189,5 +245,4 @@ def get_signal(company, date):
 
     signal = factorize_signals(popularity_rank, relevancy_rank)
     print('Final Signal:', signal)
-    signal = 1 if signal > 0 else -1 if signal < 0 else 0
-    return TradeAction(signal), 1  # Return a quantity of 1 for simplicity
+    return TradeAction(np.sign(signal)), np.floor(abs(signal) * 10)

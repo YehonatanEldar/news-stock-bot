@@ -17,7 +17,7 @@ class Simulation:
         self.balance = initial_balance
         self.company_list = company_list
         print('Loading company history data...')
-        self.company_history_list = {company: yf.Ticker(company).history(period="1y") for company in company_list}
+        self.company_history_list = {company: yf.Ticker(company).history(period="2y") for company in company_list}
         print('Company history data loaded.')
         self.date = datetime.datetime.now()
         self.portfolio = {}
@@ -121,6 +121,7 @@ class Simulation:
                 
 
                 calc_signal = TradeAction.BUY if short_EMA > long_EMA else TradeAction.SELL
+                print(f"Calc Signal: {calc_signal}, AI Signal: {AI_signal}")
                 signal = AI_signal if AI_signal == calc_signal else TradeAction.NOTHING
                 self.trade(signal, company, AI_quantity)
             
