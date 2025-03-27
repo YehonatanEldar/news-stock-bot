@@ -1,1 +1,7 @@
-
+* Make a README.txt with readme.so
+* make a launch.bat
+* Make minimal requests to google api.
+* maybe run local models with ollama
+* find a way to change the trading strategy easily
+* Make a static website
+* Add example_api_keys.json
